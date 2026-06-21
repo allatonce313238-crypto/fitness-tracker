@@ -7,6 +7,7 @@ import {
   useSensors,
   PointerSensor,
   useDroppable,
+  pointerWithin,
 } from '@dnd-kit/core'
 import { useState } from 'react'
 import { DayCard } from './DayCard'
@@ -27,7 +28,7 @@ export function Calendar({ days, onDayClick, onReschedule, onSwap }: Props) {
   const [draggingId, setDraggingId] = useState<number | null>(null)
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   )
 
   const dateMap = new Map(days.map((d) => [d.currentDate, d]))
@@ -47,26 +48,33 @@ export function Calendar({ days, onDayClick, onReschedule, onSwap }: Props) {
     if (!e.over) return
 
     const srcDayNum = (e.active.data.current as { dayNumber: number }).dayNumber
-    const overData = e.over.data.current as { date: string; dayNumber?: number }
-    const targetDate = overData.date
-    const targetDayNum = overData.dayNumber
+    const overData = e.over.data.current as { dayNumber?: number; date?: string }
 
-    const srcDay = dayMap.get(srcDayNum)
-    if (!srcDay || srcDay.currentDate === targetDate) return
+    // Dropped on another DayCard → swap
+    if (overData.dayNumber !== undefined && overData.dayNumber !== srcDayNum) {
+      await onSwap(srcDayNum, overData.dayNumber)
+      return
+    }
 
-    if (targetDayNum !== undefined && targetDayNum !== srcDayNum) {
-      // Swap two workout days
-      await onSwap(srcDayNum, targetDayNum)
-    } else if (targetDayNum === undefined) {
-      // Move to an empty slot
-      await onReschedule(srcDayNum, targetDate)
+    // Dropped on an empty cell → reschedule
+    if (overData.date !== undefined && overData.dayNumber === undefined) {
+      const srcDay = dayMap.get(srcDayNum)
+      if (srcDay && srcDay.currentDate !== overData.date) {
+        await onReschedule(srcDayNum, overData.date)
+      }
     }
   }
 
   const draggingDay = draggingId !== null ? dayMap.get(draggingId) : undefined
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    // pointerWithin: collision fires when the cursor is physically inside the target rect
+    <DndContext
+      sensors={sensors}
+      collisionDetection={pointerWithin}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
       <div className="flex flex-col gap-3">
         {/* Weekday headers */}
         <div className="grid grid-cols-7 gap-2">
@@ -86,21 +94,21 @@ export function Calendar({ days, onDayClick, onReschedule, onSwap }: Props) {
           {Array.from({ length: FIRST_DAY_OFFSET }).map((_, i) => (
             <div key={`offset-${i}`} />
           ))}
+
           {allJulyDates.map((date) => {
             const day = dateMap.get(date)
-            return (
-              <DroppableCell key={date} date={date} dayNumber={day?.dayNumber}>
-                {day ? (
-                  <DayCard day={day} onClick={() => onDayClick(day)} />
-                ) : (
-                  <EmptySlot date={date} />
-                )}
-              </DroppableCell>
+            return day ? (
+              // Occupied cell: DayCard is both draggable + droppable
+              <DayCard key={day.dayNumber} day={day} onClick={() => onDayClick(day)} />
+            ) : (
+              // Empty cell: just a droppable landing zone
+              <EmptyCell key={date} date={date} />
             )
           })}
         </div>
       </div>
 
+      {/* Ghost card that follows the cursor while dragging */}
       <DragOverlay dropAnimation={null}>
         {draggingDay && (
           <div
@@ -108,8 +116,8 @@ export function Calendar({ days, onDayClick, onReschedule, onSwap }: Props) {
             style={{
               background: 'var(--bg-surface)',
               border: '2px solid var(--accent-blue)',
+              minWidth: 90,
               opacity: 0.95,
-              minWidth: 100,
             }}
           >
             <p className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
@@ -125,40 +133,22 @@ export function Calendar({ days, onDayClick, onReschedule, onSwap }: Props) {
   )
 }
 
-function DroppableCell({
-  date,
-  dayNumber,
-  children,
-}: {
-  date: string
-  dayNumber?: number
-  children: React.ReactNode
-}) {
+// Droppable landing zone for dates that currently have no workout assigned
+function EmptyCell({ date }: { date: string }) {
   const { setNodeRef, isOver } = useDroppable({
-    id: `cell-${date}`,
-    data: { date, dayNumber },
+    id: `empty-${date}`,
+    data: { date },
   })
+  const dayNum = parseInt(date.split('-')[2] ?? '0', 10)
 
   return (
     <div
       ref={setNodeRef}
-      className="rounded-xl transition-all duration-150"
+      className="rounded-xl min-h-[88px] flex flex-col justify-start p-3 transition-colors"
       style={{
-        outline: isOver ? '2px solid var(--accent-blue)' : '2px solid transparent',
-        outlineOffset: '2px',
+        border: `2px dashed ${isOver ? 'var(--accent-blue)' : 'var(--border)'}`,
+        background: isOver ? 'rgba(91,143,255,0.08)' : 'transparent',
       }}
-    >
-      {children}
-    </div>
-  )
-}
-
-function EmptySlot({ date }: { date: string }) {
-  const dayNum = parseInt(date.split('-')[2] ?? '0', 10)
-  return (
-    <div
-      className="rounded-xl min-h-[88px] flex flex-col justify-start p-3"
-      style={{ border: '1px dashed var(--border)' }}
     >
       <span className="font-mono text-xs" style={{ color: 'var(--text-muted)' }}>
         {dayNum}

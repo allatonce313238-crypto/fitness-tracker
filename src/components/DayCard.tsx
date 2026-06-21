@@ -1,4 +1,4 @@
-import { useDraggable } from '@dnd-kit/core'
+import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { CheckCircle, XCircle, RefreshCw } from 'lucide-react'
 import type { MergedDay, WorkoutType } from '../types'
 
@@ -24,8 +24,20 @@ interface Props {
 }
 
 export function DayCard({ day, onClick }: Props) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `day-${day.dayNumber}`,
+  // Draggable — the thing you pick up
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setDragRef,
+    isDragging,
+  } = useDraggable({
+    id: `drag-${day.dayNumber}`,
+    data: { dayNumber: day.dayNumber, date: day.currentDate },
+  })
+
+  // Droppable — the landing zone for other cards
+  const { setNodeRef: setDropRef, isOver } = useDroppable({
+    id: `drop-${day.dayNumber}`,
     data: { dayNumber: day.dayNumber, date: day.currentDate },
   })
 
@@ -34,17 +46,21 @@ export function DayCard({ day, onClick }: Props) {
 
   return (
     <div
-      ref={setNodeRef}
+      ref={(node) => {
+        setDragRef(node)
+        setDropRef(node)
+      }}
       {...attributes}
       {...listeners}
       onClick={onClick}
-      className="relative rounded-xl p-3 flex flex-col gap-1 select-none min-h-[88px] transition-opacity"
+      className="relative rounded-xl p-3 flex flex-col gap-1 select-none min-h-[88px]"
       style={{
-        background: TYPE_BG[day.workoutType],
-        border: `1px solid var(--border)`,
+        background: isOver ? `${color}22` : TYPE_BG[day.workoutType],
+        border: `2px solid ${isOver ? color : 'var(--border)'}`,
         opacity: isDragging ? 0.25 : 1,
-        cursor: 'grab',
+        cursor: isDragging ? 'grabbing' : 'grab',
         touchAction: 'none',
+        transition: 'border-color 0.15s, background 0.15s',
       }}
     >
       <span className="font-mono text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
@@ -53,7 +69,10 @@ export function DayCard({ day, onClick }: Props) {
 
       <div className="flex items-center gap-1.5">
         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
-        <span className="text-xs font-medium leading-tight line-clamp-2" style={{ color: 'var(--text-primary)' }}>
+        <span
+          className="text-xs font-medium leading-tight line-clamp-2"
+          style={{ color: 'var(--text-primary)' }}
+        >
           {day.title}
         </span>
       </div>
