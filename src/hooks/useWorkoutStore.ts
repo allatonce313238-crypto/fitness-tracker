@@ -39,11 +39,13 @@ function buildDefaultState(dayNumber: number, date: string): Omit<DayState, 'id'
 export function useWorkoutStore() {
   const [days, setDays] = useState<MergedDay[]>([])
   const [loading, setLoading] = useState(true)
+  const [dbError, setDbError] = useState<string | null>(null)
 
   const fetchAndMerge = useCallback(async () => {
     const { data, error } = await supabase.from('workout_days').select('*')
     if (error) {
       console.error('Supabase fetch error:', error)
+      setDbError(`DB fetch failed: ${error.message} (code: ${error.code})`)
       setLoading(false)
       return
     }
@@ -58,6 +60,7 @@ export function useWorkoutStore() {
         .select()
       if (seedErr) {
         console.error('Supabase seed error:', seedErr)
+        setDbError(`DB seed failed: ${seedErr.message} (code: ${seedErr.code})`)
       }
       setDays(mergeData((seeded ?? []) as DayState[]))
     } else {
@@ -88,6 +91,7 @@ export function useWorkoutStore() {
       })
       if (error) {
         console.error('Supabase upsert error:', error)
+        setDbError(`Save failed: ${error.message} (code: ${error.code})`)
         return
       }
       await fetchAndMerge()
@@ -104,6 +108,7 @@ export function useWorkoutStore() {
         .upload(path, file, { upsert: true })
       if (upErr) {
         console.error('Storage upload error:', upErr)
+        setDbError(`Image upload failed: ${upErr.message}`)
         return null
       }
       const { data } = supabase.storage.from('workout-images').getPublicUrl(path)
@@ -181,8 +186,10 @@ export function useWorkoutStore() {
         ),
       ])
 
-      if (resA.error ?? resB.error) {
-        console.error('Swap Supabase error:', resA.error ?? resB.error)
+      const err = resA.error ?? resB.error
+      if (err) {
+        console.error('Swap Supabase error:', err)
+        setDbError(`Swap not saved: ${err.message} (code: ${err.code})`)
         // Revert optimistic update on Supabase failure
         setDays((prev) =>
           prev.map((d) => {
@@ -196,5 +203,5 @@ export function useWorkoutStore() {
     [days],
   )
 
-  return { days, loading, updateDay, uploadImage, rescheduleDay, swapDays }
+  return { days, loading, dbError, clearDbError: () => setDbError(null), updateDay, uploadImage, rescheduleDay, swapDays }
 }

@@ -7,7 +7,7 @@ import { WorkoutDetail } from './components/WorkoutDetail'
 import type { MergedDay } from './types'
 
 export default function App() {
-  const { days, loading, updateDay, uploadImage, rescheduleDay, swapDays } = useWorkoutStore()
+  const { days, loading, dbError, clearDbError, updateDay, uploadImage, rescheduleDay, swapDays } = useWorkoutStore()
   const [selectedDay, setSelectedDay] = useState<MergedDay | null>(null)
 
   const liveSelected = selectedDay
@@ -52,6 +52,17 @@ export default function App() {
           <StatsPanel days={days} />
         </div>
       </main>
+
+      {/* Supabase error banner */}
+      {dbError && (
+        <div
+          className="fixed bottom-4 left-4 right-4 max-w-2xl mx-auto z-50 flex items-start gap-3 px-4 py-3 rounded-xl text-sm font-mono"
+          style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.5)', color: '#fca5a5' }}
+        >
+          <span className="flex-1 break-all">⚠️ {dbError}</span>
+          <button onClick={clearDbError} className="flex-shrink-0 font-bold text-base leading-none opacity-70 hover:opacity-100">×</button>
+        </div>
+      )}
 
       {liveSelected && (
         <WorkoutDetail
