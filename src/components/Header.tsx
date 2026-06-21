@@ -46,10 +46,25 @@ export function Header({ days }: Props) {
               30-Day Fitness Tracker
             </p>
           </div>
-          <div className="flex gap-4 flex-wrap">
+          <div className="flex gap-3 flex-wrap items-center">
             <Chip label="Completed" value={`${completed}/${total}`} color="var(--accent-green)" />
             <Chip label="Streak" value={`${streak}d`} color="var(--accent-orange)" />
             <Chip label="Progress" value={`${pct}%`} color="var(--accent-blue)" />
+            {/* Static weight goal */}
+            <div
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
+              style={{ background: 'rgba(167,139,250,0.12)', border: '1px solid rgba(167,139,250,0.25)' }}
+            >
+              <span className="text-xs font-mono font-semibold" style={{ color: 'var(--accent-purple)' }}>
+                🎯 88 kg → 85.2 kg
+              </span>
+              <span
+                className="text-xs font-mono font-bold px-1.5 py-0.5 rounded"
+                style={{ background: 'rgba(167,139,250,0.2)', color: 'var(--accent-purple)' }}
+              >
+                −2.8 kg
+              </span>
+            </div>
           </div>
         </div>
 

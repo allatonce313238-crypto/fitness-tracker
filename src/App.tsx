@@ -3,7 +3,6 @@ import { useWorkoutStore } from './hooks/useWorkoutStore'
 import { Header } from './components/Header'
 import { Calendar } from './components/Calendar'
 import { StatsPanel } from './components/StatsPanel'
-import { GoalPanel } from './components/GoalPanel'
 import { WorkoutDetail } from './components/WorkoutDetail'
 import type { MergedDay } from './types'
 
@@ -45,14 +44,12 @@ export default function App() {
           />
         </section>
 
-        <aside className="hidden lg:flex flex-col gap-4">
+        <aside className="hidden lg:block">
           <StatsPanel days={days} />
-          <GoalPanel />
         </aside>
 
-        <div className="lg:hidden flex flex-col gap-4">
+        <div className="lg:hidden">
           <StatsPanel days={days} />
-          <GoalPanel />
         </div>
       </main>
 
