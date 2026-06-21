@@ -149,5 +149,39 @@ export function useWorkoutStore() {
     [days, updateDay],
   )
 
-  return { days, loading, updateDay, uploadImage, rescheduleDay }
+  const swapDays = useCallback(
+    async (dayNumberA: number, dayNumberB: number) => {
+      const dayA = days.find((d) => d.dayNumber === dayNumberA)
+      const dayB = days.find((d) => d.dayNumber === dayNumberB)
+      const planA = WORKOUT_PLAN.find((p) => p.dayNumber === dayNumberA)
+      const planB = WORKOUT_PLAN.find((p) => p.dayNumber === dayNumberB)
+      if (!dayA || !dayB || !planA || !planB) return
+
+      await Promise.all([
+        supabase.from('workout_days').upsert(
+          {
+            day_number: dayNumberA,
+            original_date: planA.date,
+            scheduled_date: dayB.currentDate,
+            is_rescheduled: dayB.currentDate !== planA.date,
+          },
+          { onConflict: 'day_number' },
+        ),
+        supabase.from('workout_days').upsert(
+          {
+            day_number: dayNumberB,
+            original_date: planB.date,
+            scheduled_date: dayA.currentDate,
+            is_rescheduled: dayA.currentDate !== planB.date,
+          },
+          { onConflict: 'day_number' },
+        ),
+      ])
+
+      await fetchAndMerge()
+    },
+    [days, fetchAndMerge],
+  )
+
+  return { days, loading, updateDay, uploadImage, rescheduleDay, swapDays }
 }

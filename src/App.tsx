@@ -3,14 +3,14 @@ import { useWorkoutStore } from './hooks/useWorkoutStore'
 import { Header } from './components/Header'
 import { Calendar } from './components/Calendar'
 import { StatsPanel } from './components/StatsPanel'
+import { GoalPanel } from './components/GoalPanel'
 import { WorkoutDetail } from './components/WorkoutDetail'
 import type { MergedDay } from './types'
 
 export default function App() {
-  const { days, loading, updateDay, uploadImage, rescheduleDay } = useWorkoutStore()
+  const { days, loading, updateDay, uploadImage, rescheduleDay, swapDays } = useWorkoutStore()
   const [selectedDay, setSelectedDay] = useState<MergedDay | null>(null)
 
-  // Keep the detail panel in sync with latest data
   const liveSelected = selectedDay
     ? (days.find((d) => d.dayNumber === selectedDay.dayNumber) ?? null)
     : null
@@ -20,7 +20,7 @@ export default function App() {
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-base)' }}>
         <div className="flex flex-col items-center gap-4">
           <div
-            className="w-10 h-10 rounded-full border-2 border-t-transparent animate-spin"
+            className="w-10 h-10 rounded-full border-2 animate-spin"
             style={{ borderColor: 'var(--accent-blue)', borderTopColor: 'transparent' }}
           />
           <p className="font-mono text-sm" style={{ color: 'var(--text-muted)' }}>
@@ -36,27 +36,26 @@ export default function App() {
       <Header days={days} />
 
       <main className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
-        {/* Calendar */}
         <section>
           <Calendar
             days={days}
             onDayClick={(day) => setSelectedDay(day)}
             onReschedule={rescheduleDay}
+            onSwap={swapDays}
           />
         </section>
 
-        {/* Stats sidebar (desktop) */}
-        <aside className="hidden lg:block">
+        <aside className="hidden lg:flex flex-col gap-4">
           <StatsPanel days={days} />
+          <GoalPanel />
         </aside>
 
-        {/* Stats below calendar on mobile */}
-        <div className="lg:hidden">
+        <div className="lg:hidden flex flex-col gap-4">
           <StatsPanel days={days} />
+          <GoalPanel />
         </div>
       </main>
 
-      {/* Workout detail panel */}
       {liveSelected && (
         <WorkoutDetail
           day={liveSelected}

@@ -30,6 +30,7 @@ interface Props {
 }
 
 export function WorkoutDetail({ day, allDays, onClose, onUpdateDay, onUploadImage, onReschedule }: Props) {
+  const [localChecked, setLocalChecked] = useState<string[]>(day.exercisesChecked)
   const [notes, setNotes] = useState(day.notes)
   const [bodyWeight, setBodyWeight] = useState<string>(day.bodyWeight?.toString() ?? '')
   const [uploading, setUploading] = useState(false)
@@ -40,11 +41,12 @@ export function WorkoutDetail({ day, allDays, onClose, onUpdateDay, onUploadImag
   const notesTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Sync notes/bodyWeight if day changes (different day opened)
+  // Sync local state when switching to a different day
   useEffect(() => {
+    setLocalChecked(day.exercisesChecked)
     setNotes(day.notes)
     setBodyWeight(day.bodyWeight?.toString() ?? '')
-  }, [day.dayNumber, day.notes, day.bodyWeight])
+  }, [day.dayNumber]) // only reset when the day changes, not on every Supabase sync
 
   // Timer
   useEffect(() => {
@@ -63,10 +65,12 @@ export function WorkoutDetail({ day, allDays, onClose, onUpdateDay, onUploadImag
   }
 
   function handleToggleExercise(id: string) {
-    const next = day.exercisesChecked.includes(id)
-      ? day.exercisesChecked.filter((x) => x !== id)
-      : [...day.exercisesChecked, id]
-    void onUpdateDay(day.dayNumber, { exercises_checked: next })
+    // Optimistic update — instant UI, Supabase syncs in background
+    setLocalChecked((prev) => {
+      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+      void onUpdateDay(day.dayNumber, { exercises_checked: next })
+      return next
+    })
   }
 
   function handleNotesChange(val: string) {
@@ -157,7 +161,7 @@ export function WorkoutDetail({ day, allDays, onClose, onUpdateDay, onUploadImag
           <Section title="Exercises">
             <ExerciseChecklist
               exercises={day.exercises}
-              checked={day.exercisesChecked}
+              checked={localChecked}
               onToggle={handleToggleExercise}
             />
           </Section>
