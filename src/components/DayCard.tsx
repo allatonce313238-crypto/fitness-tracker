@@ -1,4 +1,4 @@
-import { useDraggable, useDroppable } from '@dnd-kit/core'
+import { useState } from 'react'
 import { CheckCircle, XCircle, RefreshCw } from 'lucide-react'
 import type { MergedDay, WorkoutType } from '../types'
 
@@ -20,47 +20,50 @@ const TYPE_BG: Record<WorkoutType, string> = {
 
 interface Props {
   day: MergedDay
+  isDragging: boolean
   onClick: () => void
+  onDragStart: (dayNumber: number) => void
+  onDrop: (targetDayNumber: number) => void
 }
 
-export function DayCard({ day, onClick }: Props) {
-  // Draggable — the thing you pick up
-  const {
-    attributes,
-    listeners,
-    setNodeRef: setDragRef,
-    isDragging,
-  } = useDraggable({
-    id: `drag-${day.dayNumber}`,
-    data: { dayNumber: day.dayNumber, date: day.currentDate },
-  })
-
-  // Droppable — the landing zone for other cards
-  const { setNodeRef: setDropRef, isOver } = useDroppable({
-    id: `drop-${day.dayNumber}`,
-    data: { dayNumber: day.dayNumber, date: day.currentDate },
-  })
+export function DayCard({ day, isDragging, onClick, onDragStart, onDrop }: Props) {
+  const [isOver, setIsOver] = useState(false)
 
   const color = TYPE_COLORS[day.workoutType]
   const dayOfMonth = parseInt(day.currentDate.split('-')[2] ?? '0', 10)
 
   return (
     <div
-      ref={(node) => {
-        setDragRef(node)
-        setDropRef(node)
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = 'move'
+        e.dataTransfer.setData('text/plain', String(day.dayNumber))
+        onDragStart(day.dayNumber)
       }}
-      {...attributes}
-      {...listeners}
+      onDragEnd={() => setIsOver(false)}
+      onDragOver={(e) => {
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'move'
+      }}
+      onDragEnter={(e) => {
+        e.preventDefault()
+        setIsOver(true)
+      }}
+      onDragLeave={() => setIsOver(false)}
+      onDrop={(e) => {
+        e.preventDefault()
+        setIsOver(false)
+        onDrop(day.dayNumber)
+      }}
       onClick={onClick}
       className="relative rounded-xl p-3 flex flex-col gap-1 select-none min-h-[88px]"
       style={{
         background: isOver ? `${color}22` : TYPE_BG[day.workoutType],
-        border: `2px solid ${isOver ? color : 'var(--border)'}`,
-        opacity: isDragging ? 0.25 : 1,
-        cursor: isDragging ? 'grabbing' : 'grab',
-        touchAction: 'none',
-        transition: 'border-color 0.15s, background 0.15s',
+        border: `2px solid ${isOver ? color : 'transparent'}`,
+        outline: isOver ? 'none' : `1px solid var(--border)`,
+        opacity: isDragging ? 0.35 : 1,
+        cursor: 'grab',
+        transition: 'border-color 0.1s, background 0.1s, opacity 0.15s',
       }}
     >
       <span className="font-mono text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
