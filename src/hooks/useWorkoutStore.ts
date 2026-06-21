@@ -9,7 +9,7 @@ function mergeData(states: DayState[]): MergedDay[] {
     const s = stateMap.get(plan.dayNumber)
     return {
       ...plan,
-      currentDate: s?.current_date ?? plan.date,
+      currentDate: s?.scheduled_date ?? plan.date,
       isRescheduled: s?.is_rescheduled ?? false,
       status: s?.status ?? 'pending',
       completedAt: s?.completed_at ?? null,
@@ -24,7 +24,7 @@ function mergeData(states: DayState[]): MergedDay[] {
 function buildDefaultState(dayNumber: number, date: string): Omit<DayState, 'id'> {
   return {
     day_number: dayNumber,
-    current_date: date,
+    scheduled_date: date,
     original_date: date,
     is_rescheduled: false,
     status: 'pending',
@@ -76,10 +76,10 @@ export function useWorkoutStore() {
       if (!plan) return
 
       const current = days.find((d) => d.dayNumber === dayNumber)
-      const upsertRow: Partial<DayState> & { day_number: number; original_date: string; current_date: string } = {
+      const upsertRow: Partial<DayState> & { day_number: number; original_date: string; scheduled_date: string } = {
         day_number: dayNumber,
         original_date: plan.date,
-        current_date: current?.currentDate ?? plan.date,
+        scheduled_date: current?.currentDate ?? plan.date,
         ...patch,
       }
 
@@ -143,7 +143,7 @@ export function useWorkoutStore() {
         hiitWarning = neighbours.length > 0
       }
 
-      await updateDay(dayNumber, { current_date: newDate, is_rescheduled: true })
+      await updateDay(dayNumber, { scheduled_date: newDate, is_rescheduled: true })
       return { ok: true, hiitWarning }
     },
     [days, updateDay],

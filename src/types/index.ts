@@ -20,7 +20,7 @@ export interface WorkoutDay {
 
 export interface DayState {
   day_number: number
-  current_date: string
+  scheduled_date: string
   original_date: string
   is_rescheduled: boolean
   status: Status
