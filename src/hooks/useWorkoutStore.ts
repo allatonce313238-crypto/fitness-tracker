@@ -157,30 +157,43 @@ export function useWorkoutStore() {
       const planB = WORKOUT_PLAN.find((p) => p.dayNumber === dayNumberB)
       if (!dayA || !dayB || !planA || !planB) return
 
-      await Promise.all([
+      const dateA = dayA.currentDate
+      const dateB = dayB.currentDate
+
+      // Optimistic update — swap dates in local state immediately so UI responds instantly
+      setDays((prev) =>
+        prev.map((d) => {
+          if (d.dayNumber === dayNumberA) return { ...d, currentDate: dateB, isRescheduled: dateB !== planA.date }
+          if (d.dayNumber === dayNumberB) return { ...d, currentDate: dateA, isRescheduled: dateA !== planB.date }
+          return d
+        }),
+      )
+
+      // Persist to Supabase in background
+      const [resA, resB] = await Promise.all([
         supabase.from('workout_days').upsert(
-          {
-            day_number: dayNumberA,
-            original_date: planA.date,
-            scheduled_date: dayB.currentDate,
-            is_rescheduled: dayB.currentDate !== planA.date,
-          },
+          { day_number: dayNumberA, original_date: planA.date, scheduled_date: dateB, is_rescheduled: dateB !== planA.date },
           { onConflict: 'day_number' },
         ),
         supabase.from('workout_days').upsert(
-          {
-            day_number: dayNumberB,
-            original_date: planB.date,
-            scheduled_date: dayA.currentDate,
-            is_rescheduled: dayA.currentDate !== planB.date,
-          },
+          { day_number: dayNumberB, original_date: planB.date, scheduled_date: dateA, is_rescheduled: dateA !== planB.date },
           { onConflict: 'day_number' },
         ),
       ])
 
-      await fetchAndMerge()
+      if (resA.error ?? resB.error) {
+        console.error('Swap Supabase error:', resA.error ?? resB.error)
+        // Revert optimistic update on Supabase failure
+        setDays((prev) =>
+          prev.map((d) => {
+            if (d.dayNumber === dayNumberA) return { ...d, currentDate: dateA, isRescheduled: dateA !== planA.date }
+            if (d.dayNumber === dayNumberB) return { ...d, currentDate: dateB, isRescheduled: dateB !== planB.date }
+            return d
+          }),
+        )
+      }
     },
-    [days, fetchAndMerge],
+    [days],
   )
 
   return { days, loading, updateDay, uploadImage, rescheduleDay, swapDays }
