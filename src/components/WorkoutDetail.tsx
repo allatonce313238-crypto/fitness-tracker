@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { X, Upload, Scale, CheckCircle, XCircle, Calendar, Timer } from 'lucide-react'
+import { X, Upload, Scale, CheckCircle, XCircle, Calendar, Timer, RotateCcw } from 'lucide-react'
 import { ExerciseChecklist } from './ExerciseChecklist'
 import { RescheduleModal } from './RescheduleModal'
 import type { MergedDay, RescheduleResult } from '../types'
@@ -103,6 +103,10 @@ export function WorkoutDetail({ day, allDays, onClose, onUpdateDay, onUploadImag
       status,
       completed_at: status === 'completed' ? new Date().toISOString() : null,
     })
+  }
+
+  async function resetStatus() {
+    await onUpdateDay(day.dayNumber, { status: 'pending', completed_at: null })
   }
 
   const color = TYPE_COLORS[day.workoutType]
@@ -286,33 +290,51 @@ export function WorkoutDetail({ day, allDays, onClose, onUpdateDay, onUploadImag
         {/* Footer CTA */}
         {day.workoutType !== 'rest' && (
           <div
-            className="p-5 flex gap-3 flex-shrink-0"
+            className="p-5 flex flex-col gap-2 flex-shrink-0"
             style={{ borderTop: '1px solid var(--border)' }}
           >
-            <button
-              onClick={() => void markStatus('completed')}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90"
-              style={{
-                background: day.status === 'completed' ? 'rgba(79,209,165,0.15)' : 'var(--accent-green)',
-                color: day.status === 'completed' ? 'var(--accent-green)' : '#0f1117',
-                border: day.status === 'completed' ? '1px solid var(--accent-green)' : 'none',
-              }}
-            >
-              <CheckCircle size={16} />
-              {day.status === 'completed' ? 'Completed!' : 'Mark Complete'}
-            </button>
-            <button
-              onClick={() => void markStatus('skipped')}
-              className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium text-sm transition-opacity hover:opacity-80"
-              style={{
-                background: day.status === 'skipped' ? 'rgba(245,166,35,0.15)' : 'var(--bg-surface2)',
-                color: day.status === 'skipped' ? 'var(--accent-orange)' : 'var(--text-muted)',
-                border: `1px solid ${day.status === 'skipped' ? 'rgba(245,166,35,0.4)' : 'var(--border)'}`,
-              }}
-            >
-              <XCircle size={16} />
-              Skip
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => void markStatus('completed')}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90"
+                style={{
+                  background: day.status === 'completed' ? 'rgba(79,209,165,0.15)' : 'var(--accent-green)',
+                  color: day.status === 'completed' ? 'var(--accent-green)' : '#0f1117',
+                  border: day.status === 'completed' ? '1px solid var(--accent-green)' : 'none',
+                }}
+              >
+                <CheckCircle size={16} />
+                {day.status === 'completed' ? 'Completed!' : 'Mark Complete'}
+              </button>
+              <button
+                onClick={() => void markStatus('skipped')}
+                className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium text-sm transition-opacity hover:opacity-80"
+                style={{
+                  background: day.status === 'skipped' ? 'rgba(245,166,35,0.15)' : 'var(--bg-surface2)',
+                  color: day.status === 'skipped' ? 'var(--accent-orange)' : 'var(--text-muted)',
+                  border: `1px solid ${day.status === 'skipped' ? 'rgba(245,166,35,0.4)' : 'var(--border)'}`,
+                }}
+              >
+                <XCircle size={16} />
+                Skip
+              </button>
+            </div>
+
+            {/* Reset — only when not already pending */}
+            {day.status !== 'pending' && (
+              <button
+                onClick={() => void resetStatus()}
+                className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-medium transition-opacity hover:opacity-80"
+                style={{
+                  background: 'transparent',
+                  color: 'var(--text-muted)',
+                  border: '1px solid var(--border)',
+                }}
+              >
+                <RotateCcw size={12} />
+                Reset to pending
+              </button>
+            )}
           </div>
         )}
       </aside>
