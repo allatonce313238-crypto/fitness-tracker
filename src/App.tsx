@@ -7,7 +7,7 @@ import { WorkoutDetail } from './components/WorkoutDetail'
 import type { MergedDay } from './types'
 
 export default function App() {
-  const { days, loading, dbError, clearDbError, updateDay, uploadImage, rescheduleDay, swapDays } = useWorkoutStore()
+  const { days, loading, dbError, clearDbError, updateDay, uploadImage, rescheduleDay, swapDays, resetAll } = useWorkoutStore()
   const [selectedDay, setSelectedDay] = useState<MergedDay | null>(null)
 
   const liveSelected = selectedDay
@@ -32,7 +32,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
-      <Header days={days} />
+      <Header days={days} onReset={resetAll} />
 
       <main className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
         <section>

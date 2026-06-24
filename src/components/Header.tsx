@@ -2,6 +2,7 @@ import type { MergedDay } from '../types'
 
 interface Props {
   days: MergedDay[]
+  onReset: () => void
 }
 
 function computeStats(days: MergedDay[]) {
@@ -28,7 +29,7 @@ function computeStats(days: MergedDay[]) {
   return { total: trainingDays.length, completed: completed.length, pct, streak }
 }
 
-export function Header({ days }: Props) {
+export function Header({ days, onReset }: Props) {
   const { total, completed, pct, streak } = computeStats(days)
 
   return (
@@ -50,6 +51,17 @@ export function Header({ days }: Props) {
             <Chip label="Completed" value={`${completed}/${total}`} color="var(--accent-green)" />
             <Chip label="Streak" value={`${streak}d`} color="var(--accent-orange)" />
             <Chip label="Progress" value={`${pct}%`} color="var(--accent-blue)" />
+            <button
+              onClick={() => {
+                if (window.confirm('Reset everything to the original plan? All swaps, completions, and notes will be cleared.')) {
+                  onReset()
+                }
+              }}
+              className="px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-opacity hover:opacity-80"
+              style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)', color: '#fca5a5' }}
+            >
+              Reset All
+            </button>
             {/* Static weight goal */}
             <div
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg"

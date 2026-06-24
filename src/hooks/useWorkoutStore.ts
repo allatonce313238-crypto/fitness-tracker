@@ -203,5 +203,33 @@ export function useWorkoutStore() {
     [days],
   )
 
-  return { days, loading, dbError, clearDbError: () => setDbError(null), updateDay, uploadImage, rescheduleDay, swapDays }
+  const resetAll = useCallback(async () => {
+    // Optimistic: restore local state to original plan immediately
+    setDays(
+      WORKOUT_PLAN.map((plan) => ({
+        ...plan,
+        currentDate: plan.date,
+        isRescheduled: false,
+        status: 'pending' as const,
+        completedAt: null,
+        exercisesChecked: [],
+        notes: '',
+        imageUrl: null,
+        bodyWeight: null,
+      })),
+    )
+
+    const seeds = WORKOUT_PLAN.map((p) => buildDefaultState(p.dayNumber, p.date))
+    const { error } = await supabase
+      .from('workout_days')
+      .upsert(seeds, { onConflict: 'day_number' })
+
+    if (error) {
+      console.error('Reset error:', error)
+      setDbError(`Reset failed: ${error.message} (code: ${error.code})`)
+      await fetchAndMerge()
+    }
+  }, [fetchAndMerge])
+
+  return { days, loading, dbError, clearDbError: () => setDbError(null), updateDay, uploadImage, rescheduleDay, swapDays, resetAll }
 }
